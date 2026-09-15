@@ -36,52 +36,6 @@ services:
     environment:
       - WATCHTOWER_CLEANUP=true
 
-  traefik:
-    image: traefik:latest
-    container_name: traefik
-    command:
-      - "--log.level=DEBUG"
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--api.dashboard=true"
-      - "--log.format=json"
-      - "--providers.docker.network=media-net"
-    ports:
-      - "80:80"
-      - "8090:8080"
-      - "9080:9080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    labels:
-      <<: *common-labels
-      traefik.http.routers.dashboard.rule: "Host(`traefik.thuis`)"
-      traefik.http.routers.dashboard.service: "api@internal"
-      traefik.http.routers.dashboard.entrypoints: "web"
-      traefik.http.routers.default.rule: "PathPrefix(`/`)"
-      traefik.http.routers.default.priority: 1
-      traefik.http.routers.default.service: "api@internal"
-      traefik.http.routers.default.entrypoints: "web"
-    networks:
-      - media-net
-    restart: unless-stopped
-
-  homepage:
-    image: ghcr.io/gethomepage/homepage:latest
-    container_name: homepage
-    environment:
-      <<: *common-env
-    volumes:
-      - /opt/docker/appdata/homepage:/app/config
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - media-net
-    labels:
-      <<: *common-labels
-      traefik.http.routers.homer.rule: Host(`home.thuis`)
-      traefik.http.services.homer.loadbalancer.server.port: 3000
-
   jellyfin:
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
@@ -203,56 +157,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  gluetun:
-    image: qmcgaw/gluetun:latest
-    container_name: gluetun
-    cap_add:
-      - NET_ADMIN
-    healthcheck:
-      test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
-      interval: 5s
-      timeout: 5s
-      start_period: 10s
-      retries: 1
-    environment:
-      - VPN_SERVICE_PROVIDER=mullvad
-      - VPN_TYPE=openvpn
-      - SERVER_COUNTRIES=finland
-      - OPENVPN_USER=${OPENVPN_USER}
-      - HTTPPROXY=on
-    volumes:
-      - /opt/docker/appdata/gluetun:/gluetun
-    ports:
-      - "8080:8080"
-      - "6881:6881"
-      - "6881:6881/udp"
-      - "8191:8191"
-      - "8888:8888"
-      - "9696:9696"
-    networks:
-      - media-net
-    devices:
-      - /dev/net/tun:/dev/net/tun
-
-  qbittorrent:
-    image: linuxserver/qbittorrent:latest
-    container_name: qbittorrent
-    environment:
-      <<: *common-env
-      WEBUI_PORT: 8080
-      WEBUI_AUTH: false
-    volumes:
-      - /opt/docker/appdata/qbittorrent:/config
-      - /data/torrents:/data/torrents:rw
-    network_mode: "service:gluetun"
-    labels:
-      <<: *common-labels
-      traefik.http.routers.qbittorrent.rule: Host(`qbittorrent.thuis`)
-      traefik.http.services.qbittorrent.loadbalancer.server.port: 8080
-    depends_on:
-      - gluetun
-    restart: unless-stopped
 
   recyclarr:
     image: recyclarr/recyclarr:latest

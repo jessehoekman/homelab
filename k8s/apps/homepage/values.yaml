@@ -26,3 +26,9 @@ ingress:
             service:
               identifier: main
               port: http
+
+secrets:
+  gluetun-secret:
+    enabled: true
+    stringData:
+      WIREGUARD_PRIVATE_KEY: "${WIREGUARD_PRIVATE_KEY}"

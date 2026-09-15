@@ -1,0 +1,33 @@
+controllers:
+  recyclarr:
+    type: cronjob
+    cronjob:
+      schedule: "@daily"
+    containers:
+      app:
+        image:
+          repository: recyclarr/recyclarr
+          tag: latest
+        args: ["sync"]
+        env:
+          TZ: Europe/Amsterdam
+          PUID: "1000"
+          PGID: "100"
+
+persistence:
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+    size: 500Mi
+    globalMounts:
+      - path: /config
+
+config-file:
+  enabled: true
+  type: configMap
+  name: recyclarr-config
+  globalMounts:
+    - path: /config/recyclarr.yml
+      subPath: recyclarr.yml

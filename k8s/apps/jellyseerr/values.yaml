@@ -1,0 +1,39 @@
+controllers:
+  jellyseerr:
+    containers:
+      app:
+        image:
+          repository: fallenbagel/jellyseerr
+          tag: latest
+        env:
+          TZ: Europe/Amsterdam
+          LOG_LEVEL: debug
+
+service:
+  app:
+    controller: jellyseerr
+    ports:
+      http:
+        port: 5055
+
+ingress:
+  app:
+    enabled: true
+    className: traefik
+    hosts:
+      - host: jellyseerr.thuis
+        paths:
+          - path: /
+            service:
+              identifier: app
+              port: http
+
+persistence:
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    globalMounts:
+      - path: /app/config

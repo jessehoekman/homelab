@@ -1,0 +1,126 @@
+sonarr:
+  sonarr-main:
+    base_url: http://sonarr:8989
+    api_key: 2c1d66d0847c45559605d3e3cc155da7
+    quality_definition:
+      type: series
+    quality_profiles:
+      - name: HD Bluray + WEB [TV Optimized]
+        qualities:
+          - name: BlurayHD
+            qualities:
+              - Bluray-1080p
+              - Bluray-720p
+          - name: WEBDL-1080p
+            qualities:
+              - WEBDL-1080p
+              - WEBRip-1080p
+    custom_formats:
+      # Block Unwanted Releases
+      - trash_ids:
+          - 85c61753df5da1fb2aab6f2a47426b09  # Repack/Proper
+          - 82d40da2bc6923f41e14394075dd4b03  # Repack v3
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 50
+
+      # Streaming Service Optimization
+      - trash_ids:
+          - d660701077794679fd59e8bdf4ce3a29  # AMZN-HD
+          - 89358767a60cc28783cdc3d0be9388a4  # DSNP-HD
+          - f6cce30f1733d5c8194222a7507909bb  # HULU-HD
+          - 77a7b25585c18af08f60b1547bb9b4fb  # MAX-HD
+          - f67c9ca88f463a48346062e8ad07713f  # NF-HD
+          - 1656adc6d7bb2c8cca6acfb6592db421  # PCOK-HD
+          - c67a75ae4a1715f2bb4d492755ba4195  # PMTP-HD
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 200
+
+      # Audio Quality
+      - trash_ids:
+          - 851bd64e04c9374c51102be3dd9ae4cc  # FLAC
+          - dbe00161b08a25ac6154c55f95e6318d  # DD
+          - c1a25cd67b5d2e08287c957b1eb903ec  # DTS-ES
+          - cfa5fbd8f02a86fc55d8d223d06a5e1f  # DTS-HD MA
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 150
+
+      # HDR Formats
+      - trash_ids:
+          - 2b239ed870daba8126a53bd5dc8dc1c8
+          - 7878c33f1963fefb3d6c8657d46c2f0a  # DV HDR10
+          - bb019e1cd00f304f80971c965de064dc  # DV
+          - a3d82cbef5039f8d295478d28a887159
+          - 3e2c4e748b64a1a1118e0ea3f4cf6875  # HDR
+          - 1f733af03141f068a540eec352589a89  # HDR10
+          - 27954b0a80aab882522a88a4d9eae1cd  # HDR10+
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 300
+
+      # Language & Subtitles
+      - trash_ids:
+          - 2f6e84efc47246ec9071e311e71c4953  # Multi Audio
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 150
+
+      # HQ Source Groups with Scores
+      - trash_ids:
+          - 9965a052eb87b0d10313b1cea89eb451  # Remux Tier 01
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 1900
+
+      - trash_ids:
+          - 8a1d0c3d7497e741736761a1da866a2e  # Remux Tier 02
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 1850
+
+      - trash_ids:
+          - d6819cba26b1a6508138d25fb5e32293  # HD Bluray Tier 01
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 1800
+
+      - trash_ids:
+          - c2216b7b8aa545dc1ce8388c618f8d57  # HD Bluray Tier 02
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 1750
+
+      - trash_ids:
+          - e6258996055b9fbab7e9cb2f75819294  # WEB Tier 01
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 1700
+
+      - trash_ids:
+          - 58790d4e2fdcd9733aa7ae68ba2bb503  # WEB Tier 02
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 1650
+
+
+
+      # Release Groups (TV-Specific)
+      - trash_ids:
+          - d0c516558625b04b363fa6c5c2c7cfd4  # WEB Top Tier
+          - d84935abd3f8556dcd51d4f27e22d0a6  # P2P Groups
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: 400
+
+
+      # Block Unwanted
+      - trash_ids:
+          - 47435ece6b99a0b477caf360e79ba0bb  # Low Quality
+          - ec8fa7296b64e8cd390a1600981f3923  # Upscaled
+          - c9eafd50846d299b862ca9bb6ea91950  # x265 (720/1080p)
+          - ae9b7c9ebde1f3bd336a8cbd1ec4c5e5
+        assign_scores_to:
+          - name: HD Bluray + WEB [TV Optimized]
+            score: -10000

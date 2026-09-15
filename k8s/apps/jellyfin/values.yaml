@@ -1,0 +1,46 @@
+controllers:
+  jellyfin:
+    containers:
+      app:
+        image:
+          repository: lscr.io/linuxserver/jellyfin
+          tag: latest
+        env:
+          TZ: Europe/Amsterdam
+          PUID: "1000"
+          PGID: "100"
+
+service:
+  app:
+    controller: jellyfin
+    ports:
+      http:
+        port: 8096
+
+ingress:
+  app:
+    enabled: true
+    className: traefik
+    hosts:
+      - host: jellyfin.thuis
+        paths:
+          - path: /
+            service:
+              identifier: app
+              port: http
+
+persistence:
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    globalMounts:
+      - path: /config
+  media:
+    enabled: true
+    type: hostPath
+    hostPath: /data
+    globalMounts:
+      - path: /data

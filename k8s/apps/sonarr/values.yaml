@@ -1,0 +1,46 @@
+controllers:
+  sonarr:
+    containers:
+      app:
+        image:
+          repository: lscr.io/linuxserver/sonarr
+          tag: latest
+        env:
+          TZ: Europe/Amsterdam
+          PUID: "1000"
+          PGID: "100"
+
+service:
+  app:
+    controller: sonarr
+    ports:
+      http:
+        port: 8989
+
+ingress:
+  app:
+    enabled: true
+    className: traefik
+    hosts:
+      - host: sonarr.thuis
+        paths:
+          - path: /
+            service:
+              identifier: app
+              port: http
+
+persistence:
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+    size: 2Gi
+    globalMounts:
+      - path: /config
+  media:
+    enabled: true
+    type: hostPath
+    hostPath: /data
+    globalMounts:
+      - path: /data

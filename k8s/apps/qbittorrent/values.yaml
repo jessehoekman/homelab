@@ -1,0 +1,78 @@
+controllers:
+  qbittorrent:
+    containers:
+      gluetun:
+        image:
+          repository: qmcgaw/gluetun
+          tag: v3.38.0
+        env:
+          VPN_SERVICE_PROVIDER: mullvad
+          VPN_TYPE: wireguard
+          SERVER_COUNTRIES: netherlands
+          WIREGUARD_PRIVATE_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: gluetun-secret
+                key: WIREGUARD_PRIVATE_KEY
+          WIREGUARD_ADDRESSES:
+            valueFrom:
+              secretKeyRef:
+                name: gluetun-secret
+                key: WIREGUARD_ADDRESSES
+          HTTPPROXY: "on"
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+
+      app:
+        image:
+          repository: lscr.io/linuxserver/qbittorrent
+          tag: latest
+        env:
+          TZ: Europe/Amsterdam
+          PUID: "1000"
+          PGID: "100"
+          WEBUI_PORT: &port 8080
+
+      flaresolverr:
+        image:
+          repository: ghcr.io/flaresolverr/flaresolverr
+          tag: latest
+        env:
+          TZ: Europe/Amsterdam
+          LOG_LEVEL: info
+service:
+  app:
+    controller: qbittorrent
+    ports:
+      http:
+        port: *port
+
+ingress:
+  app:
+    enabled: true
+    className: traefik
+    hosts:
+      - host: qbittorrent.thuis
+        paths:
+          - path: /
+            service:
+              identifier: app
+              port: http
+
+persistence:
+  config:
+    enabled: true
+    type: persistentVolumeClaim
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+    size: 2Gi
+    globalMounts:
+      - path: /config
+        subPath: qbittorrent
+  torrents:
+    enabled: true
+    type: hostPath
+    hostPath: /data/torrents
+    globalMounts:
+      - path: /data/torrents
