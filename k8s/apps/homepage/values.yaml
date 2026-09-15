@@ -1,0 +1,28 @@
+controllers:
+  main:
+    containers:
+      main:
+        image:
+          repository: ghcr.io/gethomepage/homepage
+          tag: latest
+        env:
+          TZ: Europe/Amsterdam
+
+service:
+  main:
+    controller: main
+    ports:
+      http:
+        port: 3000
+
+ingress:
+  main:
+    enabled: true
+    className: traefik
+    hosts:
+      - host: homepage.thuis
+        paths:
+          - path: /
+            service:
+              identifier: main
+              port: http

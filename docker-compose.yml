@@ -128,26 +128,6 @@ services:
       - radarr
       - sonarr
 
-  radarr:
-    image: linuxserver/radarr:latest
-    container_name: radarr
-    environment:
-      <<: *common-env
-    labels:
-      <<: *common-labels
-      traefik.http.routers.radarr.rule: Host(`radarr.thuis`)
-      traefik.http.services.radarr.loadbalancer.server.port: 7878
-    volumes:
-      - /opt/docker/appdata/radarr:/config
-      - /data/media:/data/media:rw
-      - /data/torrents:/data/torrents:rw
-    ports:
-      - "7878:7878"
-    networks:
-      - media-net
-    depends_on:
-      - qbittorrent
-
   sonarr:
     image: linuxserver/sonarr:latest
     container_name: sonarr
