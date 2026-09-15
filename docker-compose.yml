@@ -67,7 +67,6 @@ services:
       - media-net
     restart: unless-stopped
 
-
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
@@ -82,27 +81,6 @@ services:
       <<: *common-labels
       traefik.http.routers.homer.rule: Host(`home.thuis`)
       traefik.http.services.homer.loadbalancer.server.port: 3000
-
-  glances:
-    image: nicolargo/glances:latest
-    container_name: glances
-    pid: host
-    environment:
-      <<: *common-env
-      GLANCES_OPT: "-w --port 61208"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /run/user/1000/podman/podman.sock:/run/user/1000/podman/podman.sock:ro
-      - /:/rootfs:ro
-    ports:
-      - "61208:61208"
-    labels:
-      <<: *common-labels
-      traefik.http.routers.glances.rule: Host(`glances.thuis`)
-      traefik.http.services.glances.loadbalancer.server.port: 61208
-      traefik.http.routers.glances.entrypoints: "web"
-    networks:
-      - media-net
 
   jellyfin:
     image: jellyfin/jellyfin:latest
