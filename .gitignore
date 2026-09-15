@@ -1,0 +1,5 @@
+.envrc
+.envrc
+*.key
+private.key
+public.key

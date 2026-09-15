@@ -1,0 +1,315 @@
+# Common configurations
+x-common-labels: &common-labels
+  traefik.enable: "true"
+  traefik.docker.network: media-net
+
+x-common-env: &common-env
+  PUID: 1000
+  PGID: 100
+  TZ: Europe/Amsterdam
+
+x-common-healthcheck: &common-healthcheck
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 10s
+
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    hostname: tailscale
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/docker/appdata/watchtower/config.json:/config.json
+    environment:
+      - WATCHTOWER_CLEANUP=true
+
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--api.dashboard=true"
+      - "--log.format=json"
+      - "--providers.docker.network=media-net"
+    ports:
+      - "80:80"
+      - "8090:8080"
+      - "9080:9080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      <<: *common-labels
+      traefik.http.routers.dashboard.rule: "Host(`traefik.thuis`)"
+      traefik.http.routers.dashboard.service: "api@internal"
+      traefik.http.routers.dashboard.entrypoints: "web"
+      traefik.http.routers.default.rule: "PathPrefix(`/`)"
+      traefik.http.routers.default.priority: 1
+      traefik.http.routers.default.service: "api@internal"
+      traefik.http.routers.default.entrypoints: "web"
+    networks:
+      - media-net
+    restart: unless-stopped
+
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    environment:
+      <<: *common-env
+    volumes:
+      - /opt/docker/appdata/homepage:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - media-net
+    labels:
+      <<: *common-labels
+      traefik.http.routers.homer.rule: Host(`home.thuis`)
+      traefik.http.services.homer.loadbalancer.server.port: 3000
+
+  glances:
+    image: nicolargo/glances:latest
+    container_name: glances
+    pid: host
+    environment:
+      <<: *common-env
+      GLANCES_OPT: "-w --port 61208"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /run/user/1000/podman/podman.sock:/run/user/1000/podman/podman.sock:ro
+      - /:/rootfs:ro
+    ports:
+      - "61208:61208"
+    labels:
+      <<: *common-labels
+      traefik.http.routers.glances.rule: Host(`glances.thuis`)
+      traefik.http.services.glances.loadbalancer.server.port: 61208
+      traefik.http.routers.glances.entrypoints: "web"
+    networks:
+      - media-net
+
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      <<: *common-env
+      JELLYFIN_PublishedServerUrl: "http://192.168.2.4:8096,http://jellyfin.thuis,http://${TAILSCALE_HOST_IP}:8096"
+      JELLYFIN_NETWORK_LOCAL_NETWORKS: "192.168.2.0/24,100.64.0.0/10"
+      JELLYFIN_NETWORK_HOSTS: "jellyfin.thuis,192.168.2.4,${TAILSCALE_HOST_IP}"
+    labels:
+      traefik.http.routers.jellyfin.rule: "Host(`jellyfin.thuis`) || HostRegexp(`{ip:192\\.168\\.2\\.4}`) || Host(`${TAILSCALE_HOST_IP}`)"
+      traefik.http.services.jellyfin.loadbalancer.server.port: 8096
+      traefik.http.routers.jellyfin.entrypoints: "web"
+      traefik.http.services.jellyfin.loadbalancer.passHostHeader: "true"
+    volumes:
+      - /opt/docker/appdata/jellyfin:/config
+      - /data/media:/data/media:ro
+    ports:
+      - "8096:8096"
+      - "7359:7359/udp"
+    devices:
+      - /dev/dri:/dev/dri
+    networks:
+      - media-net
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      <<: *common-env
+    labels:
+      <<: *common-labels
+      traefik.http.routers.jellyseerr.rule: "Host(`jellyseerr.thuis`) || Host(`${TAILSCALE_HOST_IP}`)"
+      traefik.http.services.jellyseerr.loadbalancer.server.port: 5055
+      traefik.http.routers.jellyseerr.entrypoints: "web"
+      traefik.http.services.jellyseerr.loadbalancer.passHostHeader: "true"
+    volumes:
+      - /opt/docker/appdata/jellyseerr:/app/config
+      - /data/media:/data/media:ro
+      - /data/torrents:/data/torrents:ro
+    networks:
+      - media-net
+    depends_on:
+      - jellyfin
+      - radarr
+      - sonarr
+
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      <<: *common-env
+    labels:
+      <<: *common-labels
+      traefik.http.routers.radarr.rule: Host(`radarr.thuis`)
+      traefik.http.services.radarr.loadbalancer.server.port: 7878
+    volumes:
+      - /opt/docker/appdata/radarr:/config
+      - /data/media:/data/media:rw
+      - /data/torrents:/data/torrents:rw
+    ports:
+      - "7878:7878"
+    networks:
+      - media-net
+    depends_on:
+      - qbittorrent
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      <<: *common-env
+    labels:
+      <<: *common-labels
+      traefik.http.routers.sonarr.rule: Host(`sonarr.thuis`)
+      traefik.http.services.sonarr.loadbalancer.server.port: 8989
+    ports:
+      - "8989:8989"
+    volumes:
+      - /opt/docker/appdata/sonarr:/config
+      - /data/media:/data/media:rw
+      - /data/torrents:/data/torrents:rw
+    networks:
+      - media-net
+    depends_on:
+      - qbittorrent
+
+  prowlarr:
+    image: linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      <<: *common-env
+    labels:
+      <<: *common-labels
+      traefik.http.routers.prowlarr.rule: Host(`prowlarr.thuis`)
+      traefik.http.services.prowlarr.loadbalancer.server.port: 9696
+    volumes:
+      - /opt/docker/appdata/prowlarr:/config
+    networks:
+      - media-net
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      flaresolverr:
+        condition: service_healthy
+
+  bazarr:
+    image: linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      <<: *common-env
+    labels:
+      <<: *common-labels
+      traefik.http.routers.bazarr.rule: Host(`bazarr.thuis`)
+      traefik.http.services.bazarr.loadbalancer.server.port: 6767
+
+    volumes:
+      - /opt/docker/appdata/bazarr:/config
+      - /data/media:/data/media:rw
+      - /data/torrents:/data/torrents:ro
+    networks:
+      - media-net
+    depends_on:
+      - radarr
+      - sonarr
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - TZ=Europe/Amsterdam
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -X POST http://localhost:8191/v1"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 1
+    environment:
+      - VPN_SERVICE_PROVIDER=mullvad
+      - VPN_TYPE=openvpn
+      - SERVER_COUNTRIES=finland
+      - OPENVPN_USER=${OPENVPN_USER}
+      - HTTPPROXY=on
+    volumes:
+      - /opt/docker/appdata/gluetun:/gluetun
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+      - "8191:8191"
+      - "8888:8888"
+      - "9696:9696"
+    networks:
+      - media-net
+    devices:
+      - /dev/net/tun:/dev/net/tun
+
+  qbittorrent:
+    image: linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      <<: *common-env
+      WEBUI_PORT: 8080
+      WEBUI_AUTH: false
+    volumes:
+      - /opt/docker/appdata/qbittorrent:/config
+      - /data/torrents:/data/torrents:rw
+    network_mode: "service:gluetun"
+    labels:
+      <<: *common-labels
+      traefik.http.routers.qbittorrent.rule: Host(`qbittorrent.thuis`)
+      traefik.http.services.qbittorrent.loadbalancer.server.port: 8080
+    depends_on:
+      - gluetun
+    restart: unless-stopped
+
+  recyclarr:
+    image: recyclarr/recyclarr:latest
+    container_name: recyclarr
+    environment:
+      <<: *common-env
+    volumes:
+      - /opt/docker/appdata/recyclarr:/config
+    networks:
+      - media-net
+    depends_on:
+      - sonarr
+      - radarr
+
+networks:
+  media-net:
+    name: media-net
+    driver: bridge

@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": ".",
+			"name": "Home Server"
+		},
+		{
+			"path": "/opt/docker/appdata",
+			"name": "Docker Configs"
+		}
+	],
+	"settings": {
+		"files.watcherExclude": {
+			"**/node_modules/**": true,
+			"**/dist/**": true,
+			"**/.git/**": true
+		}
+	}
+}
