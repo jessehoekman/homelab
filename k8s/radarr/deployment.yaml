@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+  labels:
+    app: radarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: radarr
+  template:
+    metadata:
+      labels:
+        app: radarr
+    spec:
+      containers:
+        - name: radarr
+          image: lscr.io/linuxserver/radarr:latest
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: TZ
+              value: "Europe/Amsterdam"
+          ports:
+            - containerPort: 7878
+              name: http
+          volumeMounts:
+            - name: radarr-config
+              mountPath: /config
+            - name: media-storage
+              mountPath: /data
+      volumes:
+        - name: radarr-config
+          persistentVolumeClaim:
+            claimName: radarr-config-pvc
+        - name: media-storage
+          hostPath:
+            path: /data/media
+            type: DirectoryOrCreate
